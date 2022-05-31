@@ -6,6 +6,37 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// newListWhithElements cоздает лист с указанными элементами.
+func newListWhithElements(elements ...interface{}) List {
+	l := NewList()
+	for _, el := range elements {
+		l.PushBack(el)
+	}
+	return l
+}
+
+// testListOfOneElement проверяет лист l на соответствие
+// двусвязному списку из указанных элементов.
+// Проверяются все ссылки и все значения.
+func testListWhithElements(t *testing.T, l List, elements ...interface{}) {
+	require.Equal(t, len(elements), l.Len())
+	list := l.Front()
+	for i := range elements {
+		require.Equal(t, elements[i], list.Value)
+		if i == 0 {
+			require.Nil(t, list.Prev)
+		} else {
+			require.Equal(t, list.Prev.Next, list)
+		}
+		if i == len(elements)-1 {
+			require.Nil(t, list.Next)
+		} else {
+			require.Equal(t, list.Next.Prev, list)
+		}
+		list = list.Next
+	}
+}
+
 func TestList(t *testing.T) {
 	t.Run("empty list", func(t *testing.T) {
 		l := NewList()
@@ -14,7 +45,64 @@ func TestList(t *testing.T) {
 		require.Nil(t, l.Front())
 		require.Nil(t, l.Back())
 	})
-
+	t.Run("PushFront", func(t *testing.T) {
+		l := NewList()
+		l.PushFront(1)
+		testListWhithElements(t, l, 1)
+		l.PushFront(2.0)
+		testListWhithElements(t, l, 2.0, 1)
+		l.PushFront("3")
+		testListWhithElements(t, l, "3", 2.0, 1)
+	})
+	t.Run("PushBack", func(t *testing.T) {
+		l := NewList()
+		l.PushBack(1)
+		testListWhithElements(t, l, 1)
+		l.PushBack(2.0)
+		testListWhithElements(t, l, 1, 2.0)
+		l.PushBack("3")
+		testListWhithElements(t, l, 1, 2.0, "3")
+	})
+	t.Run("Remove one", func(t *testing.T) {
+		l := newListWhithElements("Один")
+		l.Remove(l.Front())
+		testListWhithElements(t, l)
+	})
+	t.Run("Remove front", func(t *testing.T) {
+		l := newListWhithElements(1, 2, 3)
+		l.Remove(l.Front())
+		testListWhithElements(t, l, 2, 3)
+	})
+	t.Run("Remove back", func(t *testing.T) {
+		l := newListWhithElements(1, 2, 3)
+		l.Remove(l.Back())
+		testListWhithElements(t, l, 1, 2)
+	})
+	t.Run("Remove", func(t *testing.T) {
+		l := newListWhithElements(1, 2, 3)
+		l.Remove(l.Front().Next)
+		testListWhithElements(t, l, 1, 3)
+	})
+	t.Run("MoveToFront one", func(t *testing.T) {
+		l := newListWhithElements(1)
+		l.MoveToFront(l.Front())
+		testListWhithElements(t, l, 1)
+	})
+	t.Run("MoveToFront front", func(t *testing.T) {
+		l := newListWhithElements(1, 2, 3)
+		l.MoveToFront(l.Front())
+		testListWhithElements(t, l, 1, 2, 3)
+	})
+	t.Run("MoveToFront back", func(t *testing.T) {
+		l := newListWhithElements(1, 2, 3)
+		l.MoveToFront(l.Back())
+		testListWhithElements(t, l, 3, 1, 2)
+	})
+	t.Run("MoveToFront", func(t *testing.T) {
+		l := newListWhithElements(1, 2, 3)
+		l.MoveToFront(l.Back().Prev)
+		testListWhithElements(t, l, 2, 1, 3)
+	})
 	t.Run("complex", func(t *testing.T) {
 		l := NewList()
 
