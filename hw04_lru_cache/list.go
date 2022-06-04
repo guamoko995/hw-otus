@@ -9,13 +9,11 @@ type List interface {
 	Remove(i *ListItem)
 	MoveToFront(i *ListItem)
 }
-
 type ListItem struct {
 	Value interface{}
 	Next  *ListItem
 	Prev  *ListItem
 }
-
 type list struct {
 	len   int
 	front *ListItem
@@ -25,12 +23,15 @@ type list struct {
 func (l *list) Len() int {
 	return l.len
 }
+
 func (l *list) Front() *ListItem {
 	return l.front
 }
+
 func (l *list) Back() *ListItem {
 	return l.back
 }
+
 func (l *list) PushFront(v interface{}) *ListItem {
 	newList := &ListItem{
 		Value: v,
@@ -64,6 +65,7 @@ func (l *list) PushBack(v interface{}) *ListItem {
 	}
 	return newList
 }
+
 func (l *list) Remove(i *ListItem) {
 	switch i {
 	case l.front:
@@ -90,9 +92,21 @@ func (l *list) Remove(i *ListItem) {
 		l.len--
 	}
 }
+
 func (l *list) MoveToFront(i *ListItem) {
-	l.Remove(i)
-	l.PushFront(i.Value)
+	if i == l.front {
+		return
+	}
+	if i == l.back {
+		l.back = i.Prev
+	} else {
+		i.Next.Prev = i.Prev
+	}
+	i.Prev.Next = i.Next
+	i.Prev = nil
+	i.Next = l.front
+	l.front.Prev = i
+	l.front = i
 }
 
 func NewList() List {
