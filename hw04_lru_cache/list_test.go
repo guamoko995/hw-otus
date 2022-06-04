@@ -15,21 +15,24 @@ func newListWhithElements(elements ...interface{}) List {
 	return l
 }
 
-// testListOfOneElement проверяет лист l на соответствие
-// двусвязному списку из указанных элементов.
+// testListWhithElements проверяет l на соответствие
+// двусвязному списку из указанных elements.
 // Проверяются все ссылки и все значения.
 func testListWhithElements(t *testing.T, l List, elements ...interface{}) {
+	t.Helper()
 	require.Equal(t, len(elements), l.Len())
 	list := l.Front()
 	for i := range elements {
 		require.Equal(t, elements[i], list.Value)
 		if i == 0 {
 			require.Nil(t, list.Prev)
+			require.Equal(t, l.Front(), list)
 		} else {
 			require.Equal(t, list.Prev.Next, list)
 		}
 		if i == len(elements)-1 {
 			require.Nil(t, list.Next)
+			require.Equal(t, l.Back(), list)
 		} else {
 			require.Equal(t, list.Next.Prev, list)
 		}
@@ -102,6 +105,13 @@ func TestList(t *testing.T) {
 		l := newListWhithElements(1, 2, 3)
 		l.MoveToFront(l.Back().Prev)
 		testListWhithElements(t, l, 2, 1, 3)
+	})
+	// После перемещения элемента, он должен оставаться доступным (по старому адресу)
+	t.Run("Pointer after MoveToFront", func(t *testing.T) {
+		l := newListWhithElements(1, 2, 3)
+		p := l.Back().Prev // 2
+		l.MoveToFront(p)
+		require.Equal(t, p, l.Front())
 	})
 	t.Run("complex", func(t *testing.T) {
 		l := NewList()
