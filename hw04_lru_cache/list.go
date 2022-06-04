@@ -9,11 +9,13 @@ type List interface {
 	Remove(i *ListItem)
 	MoveToFront(i *ListItem)
 }
+
 type ListItem struct {
 	Value interface{}
 	Next  *ListItem
 	Prev  *ListItem
 }
+
 type list struct {
 	len   int
 	front *ListItem
