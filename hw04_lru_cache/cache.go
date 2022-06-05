@@ -18,8 +18,8 @@ type lruCache struct {
 }
 
 func (l *lruCache) Set(key Key, value interface{}) bool {
-	l.Mutex.Lock()
-	defer l.Mutex.Unlock()
+	l.Lock()
+	defer l.Unlock()
 	if item, ok := l.items[key]; ok {
 		l.queue.MoveToFront(item)
 		l.queue.Front().Value = cacheItem{
@@ -40,8 +40,8 @@ func (l *lruCache) Set(key Key, value interface{}) bool {
 }
 
 func (l *lruCache) Get(key Key) (interface{}, bool) {
-	l.Mutex.Lock()
-	defer l.Mutex.Unlock()
+	l.Lock()
+	defer l.Unlock()
 	if item, ok := l.items[key]; ok {
 		l.queue.MoveToFront(item)
 		return item.Value.(cacheItem).value, true
@@ -50,12 +50,10 @@ func (l *lruCache) Get(key Key) (interface{}, bool) {
 }
 
 func (l *lruCache) Clear() {
-	l.Mutex.Lock()
-	*l = lruCache{
-		capacity: l.capacity,
-		queue:    NewList(),
-		items:    make(map[Key]*ListItem, l.capacity),
-	}
+	l.Lock()
+	defer l.Unlock()
+	l.queue = NewList()
+	l.items = make(map[Key]*ListItem, l.capacity)
 }
 
 type cacheItem struct {
