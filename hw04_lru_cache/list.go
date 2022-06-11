@@ -35,64 +35,58 @@ func (l *list) Back() *ListItem {
 }
 
 func (l *list) PushFront(v interface{}) *ListItem {
-	newList := &ListItem{
+	newItem := &ListItem{
 		Value: v,
 		Next:  l.front,
 	}
 	if l.front != nil { // случай не пустого списка
-		l.front.Prev = newList
-		l.front = newList
+		l.front.Prev = newItem
+		l.front = newItem
 		l.len++
 	} else { // случай пустого списка
-		l.front = newList
-		l.back = newList
+		l.front = newItem
+		l.back = newItem
 		l.len = 1
 	}
-	return newList
+	return newItem
 }
 
 func (l *list) PushBack(v interface{}) *ListItem {
-	newList := &ListItem{
+	newItem := &ListItem{
 		Value: v,
 		Prev:  l.back,
 	}
 	if l.back != nil { // случай не пустого списка
-		l.back.Next = newList
-		l.back = newList
+		l.back.Next = newItem
+		l.back = newItem
 		l.len++
 	} else { // случай пустого списка
-		l.front = newList
-		l.back = newList
+		l.front = newItem
+		l.back = newItem
 		l.len = 1
 	}
-	return newList
+	return newItem
 }
 
 func (l *list) Remove(i *ListItem) {
+	if l.len == 1 {
+		l.len = 0
+		l.front = nil
+		l.back = nil
+		return
+	}
 	switch i {
 	case l.front:
 		l.front = i.Next
-		if l.front != nil {
-			l.front.Prev = nil
-			l.len--
-		} else {
-			l.back = nil
-			l.len = 0
-		}
+		l.front.Prev = nil
 	case l.back:
 		l.back = i.Prev
-		if l.back != nil {
-			l.back.Next = nil
-			l.len--
-		} else {
-			l.front = nil
-			l.len = 0
-		}
+		l.back.Next = nil
 	default:
 		i.Next.Prev = i.Prev
 		i.Prev.Next = i.Next
-		l.len--
 	}
+	l.len--
 }
 
 func (l *list) MoveToFront(i *ListItem) {

@@ -60,17 +60,20 @@ func TestCache(t *testing.T) {
 		_ = c.Set("b", 2) // [b, a]
 		_ = c.Set("c", 3) // [c, b, a]
 		_ = c.Set("d", 4) // [d, c, b]
-		_, wasInCache := c.Get("a")
+		val, wasInCache := c.Get("a")
+		require.Equal(t, nil, val)
 		require.False(t, wasInCache)
 
 		_, _ = c.Get("b") // [b, d, c]
 		_ = c.Set("a", 1) // [a, b, d]
-		_, wasInCache = c.Get("c")
+		val, wasInCache = c.Get("c")
+		require.Equal(t, nil, val)
 		require.False(t, wasInCache)
 
 		_ = c.Set("d", 4) // [d, a, b]
 		_ = c.Set("c", 3) // [c, d, a]
-		_, wasInCache = c.Get("b")
+		val, wasInCache = c.Get("b")
+		require.Equal(t, nil, val)
 		require.False(t, wasInCache)
 	})
 }
