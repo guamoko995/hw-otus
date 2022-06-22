@@ -2,6 +2,7 @@ package hw06pipelineexecution
 
 import (
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,6 +15,8 @@ const (
 )
 
 func TestPipeline(t *testing.T) {
+	var activeTasksCount int32
+
 	// Stage generator
 	g := func(_ string, f func(v interface{}) interface{}) Stage {
 		return func(in In) Out {
@@ -21,7 +24,9 @@ func TestPipeline(t *testing.T) {
 			go func() {
 				defer close(out)
 				for v := range in {
+					atomic.AddInt32(&activeTasksCount, 1)
 					time.Sleep(sleepPerStage)
+					atomic.AddInt32(&activeTasksCount, -1)
 					out <- f(v)
 				}
 			}()
@@ -59,6 +64,8 @@ func TestPipeline(t *testing.T) {
 			int64(elapsed),
 			// ~0.8s for processing 5 values in 4 stages (100ms every) concurrently
 			int64(sleepPerStage)*int64(len(stages)+len(data)-1)+int64(fault))
+		atc := atomic.LoadInt32(&activeTasksCount)
+		require.Equal(t, int32(0), atc, "not all goroutines completed")
 	})
 
 	t.Run("done case", func(t *testing.T) {
@@ -89,5 +96,8 @@ func TestPipeline(t *testing.T) {
 
 		require.Len(t, result, 0)
 		require.Less(t, int64(elapsed), int64(abortDur)+int64(fault))
+		time.Sleep(sleepPerStage * 4)
+		atc := atomic.LoadInt32(&activeTasksCount)
+		require.Equal(t, int32(0), atc, "not all goroutines completed")
 	})
 }
