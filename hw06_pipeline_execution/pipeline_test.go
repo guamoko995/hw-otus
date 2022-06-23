@@ -2,11 +2,13 @@ package hw06pipelineexecution
 
 import (
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.uber.org/goleak"
 )
 
 const (
@@ -22,11 +24,11 @@ func TestPipeline(t *testing.T) {
 		return func(in In) Out {
 			out := make(Bi)
 			go func() {
+				atomic.AddInt32(&activeTasksCount, 1)
+				defer atomic.AddInt32(&activeTasksCount, -1)
 				defer close(out)
 				for v := range in {
-					atomic.AddInt32(&activeTasksCount, 1)
 					time.Sleep(sleepPerStage)
-					atomic.AddInt32(&activeTasksCount, -1)
 					out <- f(v)
 				}
 			}()
@@ -58,26 +60,34 @@ func TestPipeline(t *testing.T) {
 			result = append(result, s.(string))
 		}
 		elapsed := time.Since(start)
+		activeTaskCoun := atomic.LoadInt32(&activeTasksCount)
 
 		require.Equal(t, []string{"102", "104", "106", "108", "110"}, result)
 		require.Less(t,
 			int64(elapsed),
 			// ~0.8s for processing 5 values in 4 stages (100ms every) concurrently
 			int64(sleepPerStage)*int64(len(stages)+len(data)-1)+int64(fault))
-		atc := atomic.LoadInt32(&activeTasksCount)
-		require.Equal(t, int32(0), atc, "not all goroutines completed")
+		require.Equal(t, int32(0), activeTaskCoun, "not all goroutines completed")
 	})
 
 	t.Run("done case", func(t *testing.T) {
+		defer goleak.VerifyNone(t)
 		in := make(Bi)
 		done := make(Bi)
 		data := []int{1, 2, 3, 4, 5}
 
-		// Abort after 200ms
+		// Abort after 800ms
 		abortDur := sleepPerStage * 2
+		// Time stopet max = time stage (get Done) + time stage (1 step stage) + fault
+		stopDur := sleepPerStage*2 + fault
+
+		var wg sync.WaitGroup
+		wg.Add(1)
 		go func() {
 			<-time.After(abortDur)
 			close(done)
+			time.Sleep(stopDur)
+			wg.Done()
 		}()
 
 		go func() {
@@ -87,17 +97,18 @@ func TestPipeline(t *testing.T) {
 			close(in)
 		}()
 
-		result := make([]string, 0, 10)
+		result := make([]string, 0, 5)
 		start := time.Now()
 		for s := range ExecutePipeline(in, done, stages...) {
 			result = append(result, s.(string))
 		}
 		elapsed := time.Since(start)
+		wg.Wait()
+		activeTaskCoun := atomic.LoadInt32(&activeTasksCount)
 
 		require.Len(t, result, 0)
 		require.Less(t, int64(elapsed), int64(abortDur)+int64(fault))
-		time.Sleep(sleepPerStage * 4)
-		atc := atomic.LoadInt32(&activeTasksCount)
-		require.Equal(t, int32(0), atc, "not all goroutines completed")
+
+		require.Equal(t, int32(0), activeTaskCoun, "not all goroutines completed during the stop time")
 	})
 }
