@@ -10,7 +10,7 @@ type Task func() error
 func Run(tasks []Task, n, m int) (err error) {
 	cTasks := make(chan Task, 1)
 	cErrors := make(chan error)
-	active := n // Количество задачь в статусе выполнения.
+	active := n // Количество задач в статусе выполнения.
 	l := len(tasks)
 	if l < active {
 		active = l
@@ -34,7 +34,7 @@ func Run(tasks []Task, n, m int) (err error) {
 		}
 	}
 	close(cTasks) // Остановка конвейера.
-	for ; active > 0; active-- {
+	for range cTasks {
 		<-cErrors // Разгрузка конвейера
 	}
 	return
