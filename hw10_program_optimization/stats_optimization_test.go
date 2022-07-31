@@ -1,3 +1,4 @@
+//go:build bench
 // +build bench
 
 package hw10programoptimization
@@ -16,6 +17,27 @@ const (
 
 	timeLimit = 300 * time.Millisecond
 )
+
+func BenchmarkTestGetDomainStat(b *testing.B) {
+	b.StopTimer()
+	for i := 0; i < b.N; i++ {
+		r, err := zip.OpenReader("testdata/users.dat.zip")
+		require.NoError(b, err)
+		defer r.Close()
+
+		require.Equal(b, 1, len(r.File))
+
+		data, err := r.File[0].Open()
+		require.NoError(b, err)
+
+		b.StartTimer()
+		stat, err := GetDomainStat(data, "biz")
+		b.StopTimer()
+		require.NoError(b, err)
+
+		require.Equal(b, expectedBizStat, stat)
+	}
+}
 
 // go test -v -count=1 -timeout=30s -tags bench .
 func TestGetDomainStat_Time_And_Memory(t *testing.T) {
