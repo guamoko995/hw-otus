@@ -1,3 +1,4 @@
+//go:build !bench
 // +build !bench
 
 package hw10programoptimization
@@ -35,5 +36,18 @@ func TestGetDomainStat(t *testing.T) {
 		result, err := GetDomainStat(bytes.NewBufferString(data), "unknown")
 		require.NoError(t, err)
 		require.Equal(t, DomainStat{}, result)
+	})
+
+	t.Run("find 'com'", func(t *testing.T) {
+		result, err := GetDomainStat(bytes.NewBufferString(data), "(com")
+		require.Equal(t, "invalid domain", err.Error())
+		require.Nil(t, result)
+	})
+
+	data = "no valid data"
+	t.Run("find 'com'", func(t *testing.T) {
+		result, err := GetDomainStat(bytes.NewBufferString(data), "com")
+		require.Equal(t, "parse error: syntax error near offset 0 of 'no valid data'", err.Error())
+		require.Nil(t, result)
 	})
 }
