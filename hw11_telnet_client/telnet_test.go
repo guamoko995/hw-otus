@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
-	"io/ioutil"
+	"errors"
+	"io"
 	"net"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -29,7 +31,7 @@ func TestTelnetClient(t *testing.T) {
 			timeout, err := time.ParseDuration("10s")
 			require.NoError(t, err)
 
-			client := NewTelnetClient(l.Addr().String(), timeout, ioutil.NopCloser(in), out)
+			client := NewTelnetClient(l.Addr().String(), timeout, io.NopCloser(in), out)
 			require.NoError(t, client.Connect())
 			defer func() { require.NoError(t, client.Close()) }()
 
@@ -61,5 +63,33 @@ func TestTelnetClient(t *testing.T) {
 		}()
 
 		wg.Wait()
+	})
+
+	t.Run("test timeout", func(t *testing.T) {
+		l, err := net.Listen("tcp", "127.0.0.1:")
+		require.NoError(t, err)
+		defer func() { require.NoError(t, l.Close()) }()
+
+		timeout, err := time.ParseDuration("1ns")
+		require.NoError(t, err)
+
+		client := NewTelnetClient(l.Addr().String(), timeout, io.NopCloser(nil), nil)
+		err = client.Connect()
+		require.NotNil(t, err)
+
+		var tg net.Error
+		require.True(t, errors.As(err, &tg))
+		require.True(t, tg.Timeout())
+	})
+
+	t.Run("connecting to a non-existent server", func(t *testing.T) {
+		timeout, err := time.ParseDuration("10s")
+		require.NoError(t, err)
+
+		client := NewTelnetClient("127.0.0.1:", timeout, io.NopCloser(nil), nil)
+		err = client.Connect()
+		require.NotNil(t, err)
+
+		require.True(t, errors.Is(err, syscall.ECONNREFUSED))
 	})
 }
